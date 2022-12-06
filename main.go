@@ -39,7 +39,7 @@ var (
 	flagStdout       = flag.Bool("stdout", false, "Log incoming messages to stdout")
 	flagStdoutFormat = flag.String("stdout-format", "{{.TimestampStr}} {{.DeviceID}} {{.Src}} {{.LevelChar}} {{.Msg}}", "Format of stdout records")
 	flagLogDir       = flag.String("log-dir", "", "Log incoming messages to per-device files in this directory")
-	flagFileFormat   = flag.String("file-format", "{{.TimestampStr}} {{.Src}} {{.LevelChar}} {{.Msg}}", "Format of stdout records")
+	flagFileFormat   = flag.String("file-format", "{{.TimestampStr}} {{.Src}} {{.LevelChar}} {{.Msg}}", "Format of file records")
 )
 
 // UDP log line format is:

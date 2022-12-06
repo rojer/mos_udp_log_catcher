@@ -19,8 +19,8 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"text/template"
 	"time"
@@ -52,6 +52,9 @@ func (di *deviceInfo) Open(nameTmpl, latestNameTmpl *template.Template, li *Line
 		di.Close()
 	}
 	di.fname = fname
+	if err := os.MkdirAll(filepath.Dir(fname), 0o755); err != nil {
+		return errors.Annotatef(err, "failed to create log dir")
+	}
 	if fd, err := os.OpenFile(di.fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err != nil {
 		return errors.Trace(err)
 	} else {
@@ -64,12 +67,13 @@ func (di *deviceInfo) Open(nameTmpl, latestNameTmpl *template.Template, li *Line
 			return errors.Annotatef(err, "Failed to execute file name template: %v", err)
 		}
 		target, err := os.Readlink(latestName)
-		if err != nil || target != di.fname {
+		latestBase := filepath.Base(di.fname)
+		if err != nil || target != latestBase {
 			os.Remove(latestName)
-			if err = os.Symlink(di.fname, latestName); err != nil {
-				klog.Errorf("Failed to sylink %s to %s", di.fname, latestName)
+			if err = os.Symlink(latestBase, latestName); err != nil {
+				klog.Errorf("Failed to symlink %s to %s", di.fname, latestBase)
 			} else {
-				klog.Infof("%s -> %s", latestName, di.fname)
+				klog.Infof("%s -> %s", latestName, latestBase)
 			}
 		}
 	}
@@ -129,10 +133,10 @@ func NewFileManager(dir, recordTmpl string) (*FileManager, error) {
 		devices: make(map[string]*deviceInfo),
 	}
 	var err error
-	if fm.nameTmpl, err = template.New("filename").Parse(fmt.Sprintf("%s/%s", dir, deviceLogName)); err != nil {
+	if fm.nameTmpl, err = template.New("filename").Parse(filepath.Join(dir, "{{.DeviceIDSafe}}", deviceLogName)); err != nil {
 		return nil, errors.Annotatef(err, "invalid file name template")
 	}
-	if fm.latestNameTmpl, err = template.New("filename").Parse(fmt.Sprintf("%s/%s", dir, latestDeviceLogName)); err != nil {
+	if fm.latestNameTmpl, err = template.New("filename").Parse(filepath.Join(dir, "{{.DeviceIDSafe}}", latestDeviceLogName)); err != nil {
 		return nil, errors.Annotatef(err, "invalid file name template")
 	}
 	if fm.recordTmpl, err = template.New("file").Parse(*flagFileFormat); err != nil {
